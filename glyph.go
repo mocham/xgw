@@ -8,6 +8,7 @@ package xgw
 import "C"
 import (
 	"unsafe"
+	"log"
 	"errors"
 	"os"
 	_ "embed"
@@ -45,6 +46,7 @@ var (
 	ErrResize = errors.New("failed to resize image")
 	ErrParam = errors.New("invalid parameters")
 	ff2Flag bool 
+	cleanup = func () {}
 )
 func Ptr[T any, U any](b *U) *T { return (*T)(unsafe.Pointer(b)) }
 func Array[T any, U any](b *U, size int) []T { return (*(*[1<<30]T)(unsafe.Pointer(b)))[:size:size] }
