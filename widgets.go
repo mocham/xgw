@@ -22,7 +22,7 @@ func UniversalWidget(title string, left, top, winWidth, winHeight int, paint fun
 				paintWrap()
 				SetWmName(ximg.Win, title)
 			}
-        case EXClient: if event.Type==atomMap["WM_PROTOCOLS"] && event.Data.Data32[0]==uint32(atomMap["WM_DELETE_WINDOW"]) && ximg.Win==event.Window { return }
+        case EXClient: if event.Type==AtomMap["WM_PROTOCOLS"] && event.Data.Data32[0]==uint32(AtomMap["WM_DELETE_WINDOW"]) && ximg.Win==event.Window { return }
         case EXButton:
 			if button == nil { continue }
 			switch button(byte(event.Detail), event.RootX, event.RootY) {
@@ -33,7 +33,7 @@ func UniversalWidget(title string, left, top, winWidth, winHeight int, paint fun
 			if keypress == nil { continue }
 			detail := byte(event.Detail)
 			if event.State != 0 { detail += 128 }
-			if int(detail) > len(xconf.Keymap) { detail = 0 }
+			if int(detail) > len(Conf.Keymap) { detail = 0 }
 			switch keypress(detail) {
 			case 1: paintWrap()
 			case -1: return
@@ -93,24 +93,24 @@ func (d *Dequeue[T]) Back() (T, error) {
 
 type MultiRowState struct {
     fgColor, bgColor uint32
-    xPos, yPos, maxRows, winWidth, winHeight int
-    instructions *Dequeue[string]
+    XPos, YPos, maxRows, winWidth, winHeight int
+    Instructions *Dequeue[string]
 }
-func interpretXTerm(state *MultiRowState, code string) {
+func InterpretXTerm(state *MultiRowState, code string) {
 	for _, str := range parseXTerm(code) {
 		if strings.HasPrefix(str, "\x1b[") {
 			switch str[len(str) - 1] {
 			case 'H':
 				arr := strings.Split(str[2:len(str)-1], ";")
 				if len(arr) < 2 { continue }
-				state.instructions.PushBack("xPos="+arr[1], "yPos="+arr[0])
-			case 'K': state.instructions.PushBack("Clear")
-			case 'm': state.instructions.PushBack("XTerm="+str)
+				state.Instructions.PushBack("XPos="+arr[1], "YPos="+arr[0])
+			case 'K': state.Instructions.PushBack("Clear")
+			case 'm': state.Instructions.PushBack("XTerm="+str)
 			}
 		} else if str == "\n" {
-			state.instructions.PushBack("Newline")
+			state.Instructions.PushBack("Newline")
 		} else {
-			state.instructions.PushBack("<-" + str)
+			state.Instructions.PushBack("<-" + str)
 		}
 	}
 }
@@ -156,41 +156,41 @@ func parseXTerm(input string) (ret []string) {
 }
 
 func MultiRowGlyphWidget(title string, left, top, winWidth, winHeight int, keypress func(byte, *MultiRowState) int, init func(*MultiRowState)) {
-    maxRows := winHeight / glyphHeight
+    maxRows := winHeight / GlyphHeight
     state := MultiRowState{
-        xPos: 0, yPos: 1, fgColor: 0xffd7afaf, bgColor: 0xff5f5f87,
-        instructions: NewDequeue[string](winWidth/glyphWidth*maxRows*2),
+        XPos: 0, YPos: 1, fgColor: 0xffd7afaf, bgColor: 0xff5f5f87,
+        Instructions: NewDequeue[string](winWidth/GlyphWidth*maxRows*2),
         maxRows: maxRows, winWidth: winWidth, winHeight: winHeight,
     }
-    state.instructions.PushBack("ClearAll")
+    state.Instructions.PushBack("ClearAll")
 	var ximg *XImage
 	drawRune := func (aRune uint32) { 
-		if state.yPos >= state.maxRows || state.xPos >= winWidth { return }
-		glyph := getColoredGlyph(aRune, state.fgColor, state.bgColor)
-		ximg.XDraw(glyph, state.xPos, (state.yPos-1)*glyphHeight)
-		state.xPos += glyph.Width
+		if state.YPos >= state.maxRows || state.XPos >= winWidth { return }
+		glyph := GetColoredGlyph(aRune, state.fgColor, state.bgColor)
+		ximg.XDraw(glyph, state.XPos, (state.YPos-1)*GlyphHeight)
+		state.XPos += glyph.Width
 	}
     interpret := func(instruction string) {
         switch instruction {
-		case "Newline": state.xPos = 0; if state.yPos < state.maxRows { state.yPos += 1 }
-		case "Backspace": if state.xPos >= glyphWidth { state.xPos -= glyphWidth; ximg.XDraw(blankImage(glyphWidth, glyphHeight), state.xPos, (state.yPos-1)*glyphHeight) }
-        case "Clear": if state.xPos<0 || state.xPos>=state.winWidth { return }; ximg.XDraw(blankImage(state.winWidth-state.xPos, glyphHeight), state.xPos, (state.yPos-1)*glyphHeight)
-        case "ClearAll": state.xPos, state.yPos = 0, 0; ximg.XDraw(blankImage(state.winWidth, state.winHeight), 0, 0)
-        case "ClearRest": ximg.XDraw(blankImage(state.winWidth, state.winHeight - state.yPos*glyphHeight), 0, state.yPos*glyphHeight)
+		case "Newline": state.XPos = 0; if state.YPos < state.maxRows { state.YPos += 1 }
+		case "Backspace": if state.XPos >= GlyphWidth { state.XPos -= GlyphWidth; ximg.XDraw(BlankImage(GlyphWidth, GlyphHeight), state.XPos, (state.YPos-1)*GlyphHeight) }
+        case "Clear": if state.XPos<0 || state.XPos>=state.winWidth { return }; ximg.XDraw(BlankImage(state.winWidth-state.XPos, GlyphHeight), state.XPos, (state.YPos-1)*GlyphHeight)
+        case "ClearAll": state.XPos, state.YPos = 0, 0; ximg.XDraw(BlankImage(state.winWidth, state.winHeight), 0, 0)
+        case "ClearRest": ximg.XDraw(BlankImage(state.winWidth, state.winHeight - state.YPos*GlyphHeight), 0, state.YPos*GlyphHeight)
         default:
-            if strings.HasPrefix(instruction, "<-") { foreachRune([]byte(instruction[2:]), func(aRune uint32){drawRune(aRune)}) }
+            if strings.HasPrefix(instruction, "<-") { ForeachRune([]byte(instruction[2:]), func(aRune uint32){drawRune(aRune)}) }
 			if len(instruction) < 5 { return }
 			switch instruction[:5] {
-			case "yPos=": if y := ParseInt(instruction[5:]); y >= 1 && y <= state.maxRows { state.yPos = y }
-			case "xPos=": if x := ParseInt(instruction[5:]); x >= 0 && x * glyphWidth <= state.winWidth { state.xPos = x * glyphWidth }
+			case "YPos=": if y := ParseInt(instruction[5:]); y >= 1 && y <= state.maxRows { state.YPos = y }
+			case "XPos=": if x := ParseInt(instruction[5:]); x >= 0 && x * GlyphWidth <= state.winWidth { state.XPos = x * GlyphWidth }
 			case "XTerm": parseXTermColor(&state, strings.TrimPrefix(instruction, "XTerm="))
 			}
         }
     }
     UniversalWidget(title, left, top, winWidth, winHeight, func(ximg *XImage) (int, int) {
         for {
-            if state.instructions.size == 0 { break }
-            instruction, err := state.instructions.PopFront()
+            if state.Instructions.size == 0 { break }
+            instruction, err := state.Instructions.PopFront()
             if err == nil { interpret(instruction) }
         }
         return 0, 0
@@ -202,4 +202,76 @@ func MultiRowGlyphWidget(title string, left, top, winWidth, winHeight int, keypr
 		ximg = xim
 		if init != nil { init(&state) }
 	})
+}
+
+
+type SingleRowState struct { XPos int; Instructions *Dequeue[string] }
+func SingleRowGlyphWidget(title string, left, top, winWidth int, modKeys []uint16, keypress func (byte, *SingleRowState) int, init func(*SingleRowState)) {
+	state := SingleRowState { XPos: 0, Instructions: NewDequeue[string](winWidth / GlyphWidth * 2) }
+	state.Instructions.PushBack("Clear")
+	var ximg *XImage
+	var XPosBackup int
+	interpret := func(instruction string) {
+		switch instruction {
+		case "Clear": state.XPos = 0; ximg.XDraw(BlankImage(winWidth, GlyphHeight), 0, 0)
+		case "XPos#Save": XPosBackup = state.XPos
+		case "XPos#Load": state.XPos = XPosBackup 
+		case "Ungrab#Backspace": ximg.Ungrab(22)
+		case "Backspace": if state.XPos >= GlyphWidth  { state.XPos -= GlyphWidth; ximg.XDraw(BlankImage(GlyphWidth, GlyphHeight), state.XPos, 0) }
+		case "Raise": RaiseWindow(ximg.Win)
+		case "SetIM": ImWindow = ximg.Win
+		case "Grab#Backspace": ximg.Grab(0, 22)
+		case "Grab#Return": ximg.Grab(0, 36)
+		case "Grab#IM": for _, code := range []byte{9, 10, 11, 12, 13, 14, 20, 21, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 38, 39, 40, 41, 42, 43, 44, 45, 46, 52, 53, 54, 55, 56, 57, 58, 88, 89, 90, 91, 92} { for _, mod := range modKeys { ximg.Grab(mod, code) } }
+		default: glyph := GetColoredGlyph(StringToRune(instruction), 0xffd7afaf, 0xff5f5f87); if state.XPos + glyph.Width < winWidth { ximg.XDraw(glyph, state.XPos, 0); state.XPos += glyph.Width }
+		}
+	}
+	UniversalWidget(title, left, top, winWidth, GlyphHeight, func (ximg *XImage) (int, int) {
+		for {
+			if state.Instructions.size == 0 { break }
+			instruction, err := state.Instructions.PopFront()
+			if err == nil { interpret(instruction) }
+		}
+		return 0, 0
+	}, nil, func(detail byte) int {
+		if keypress == nil { return 0 }
+		return keypress(detail, &state)
+	}, nil, func (xim *XImage) { 
+		ximg = xim
+		if init != nil { init(&state) }
+	})
+}
+
+func SimpleCanvasWidget(title string, img RGBAData) {
+    top, left := 0, 0
+    UniversalWidget(title, 0, 0, Width, Height, func(ximg *XImage) (int, int) {
+        if img.Width - left < Width { left = img.Width - Width }
+        if left < 0 { left = 0 }
+        if img.Height - top < Height { top = img.Height - Height }
+        if top < 0 { top = 0 } 
+        w, h := Width, Height
+        if img.Width - left < w { w = img.Width - left }
+        if img.Height - top < h { h = img.Height - top }
+        ximg.XDraw(Crop(img, left, top, w, h), 0, 0)
+        return 0, 0
+    }, func (detail byte, x, y int16) int {
+        switch detail {
+        case 4: top -= 200
+        case 5: top += 200
+        case 6: left -= 200
+        case 7: left += 200
+        default: return 0
+        }
+        return 1
+    }, func (detail byte) int {
+        switch detail {
+        case 24: return -1 //"q"
+        case 111: top -= 200
+        case 116: top += 200
+        case 113: left -=200
+        case 114: left +=200
+        default: return 0
+        }
+        return 1
+    }, nil, WindowRaiseFocuser)
 }

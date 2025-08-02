@@ -5,13 +5,13 @@ import (
 )
 func xterm256ToARGB(code int) uint32 {
     if code < 0 || code > 255 { return 0xFF000000 }
-    if code <= 15 { return uint32(xconf.XTermColors[code]) }
+    if code <= 15 { return uint32(Conf.XTermColors[code]) }
     if code >= 232 { gray := uint32(8 + 10*(code-232)); return 0xFF000000 | (gray << 16) | (gray << 8) | gray} // Handle grayscale (232-255)
 	code -= 16 // Handle 6x6x6 color cube (16-231)
 	scale := func(v int) uint32 { if v > 0 { return uint32(55 + 40*v) }; return 0}
 	return 0xFF000000 | (scale(code / 36) << 16) | (scale((code % 36) / 6) << 8) | scale(code % 6)
 }
-func parseXTermColor(state *multiRowState, escapeSeq string) {
+func parseXTermColor(state *MultiRowState, escapeSeq string) {
 	if len(escapeSeq) < 4 { return }
 	if escapeSeq == "\x1b[0m" { state.bgColor, state.fgColor = 0, 0xff8787af; return }
 	if parts := strings.Split(escapeSeq[2:len(escapeSeq)-1], ";"); len(parts) == 1 {
@@ -64,52 +64,52 @@ func duUpdate[T TDu](state *DuState[T], oldCursor int) string {
 	}
 }
 
-func duAt[T TDu](state *DuState[T]) string {
+func DuAt[T TDu](state *DuState[T]) string {
 	if state.Cursor < 0 || state.Cursor >= len(state.List) { return "" }
 	return state.At(state.Path, state.List[state.Cursor].Key)
 }
 
 func DuWidget[T TDu](path, sortName string, widthPerc float64, Query func(string, string) *DuState[T], Run func (*DuState[T], string) string) {
 	var duState *DuState[T]
-    winWidth, cmd, cmdPos, cursors := int(float64(width) * widthPerc), "", "xPos=" + FmtInt(15*scale), make(map[string]int)
+    winWidth, cmd, cmdPos, cursors := int(float64(Width) * widthPerc), "", "xPos=" + FmtInt(15*Scale), make(map[string]int)
 	if winWidth < 0 { winWidth = 300 }
-    init := func (state *multiRowState) {
+    init := func (state *MultiRowState) {
 		if duState != nil { cursors[duState.Path] = duState.Cursor }
 		newState := Query(path, sortName)
 		if newState == nil { path = duState.Path; return }
 		duState = newState
 		duState.Right = state.maxRows
         if cursorBackup, exists := cursors[path]; exists { duState.Cursor = cursorBackup }
-        interpretXTerm(state, duRefresh(duState))
-		state.instructions.PushBack("ClearRest")
+        InterpretXTerm(state, duRefresh(duState))
+		state.Instructions.PushBack("ClearRest")
     }
-    multiRowGlyphWidget("auto-du-widget", width - winWidth, 0, winWidth, height - 60, func (detail byte, state *multiRowState) (ret int) {
+    MultiRowGlyphWidget("auto-du-widget", Width - winWidth, 0, winWidth, Height - 60, func (detail byte, state *MultiRowState) (ret int) {
         oldCursor := duState.Cursor
 		ret = 1
         if cmd != "" {
 			switch detail{
-			case 9: cmd = ""; state.instructions.PushBack(cmdPos, "Clear")
+			case 9: cmd = ""; state.Instructions.PushBack(cmdPos, "Clear")
 			case 22: 
-                state.instructions.PushBack("Backspace")
+                state.Instructions.PushBack("Backspace")
                 cmd = cmd[:len(cmd)-1]
-                if cmd == "" { state.instructions.PushBack(cmdPos, "Clear") }
+                if cmd == "" { state.Instructions.PushBack(cmdPos, "Clear") }
 			case 36:
                 newPath := Run(duState, cmd)
                 cmd = ""
 				if newPath == "" { return 0 }
 				path = newPath; init(state)
             default:
-                ch := xconf.Keymap[detail]
+                ch := Conf.Keymap[detail]
 				if len(ch) > 4 || ch == "N/A" { return 0 }
                 cmd += ch
-                state.instructions.PushBack("<-" + ch)
+                state.Instructions.PushBack("<-" + ch)
             }
             return
         }
         switch detail {
         case 9, 24: return -1 // ESC, Q
         case 114:
-            newPath := duAt(duState)
+            newPath := DuAt(duState)
             if newPath == "" { return 0 }
             path = newPath; init(state)
         case 113:
@@ -118,18 +118,18 @@ func DuWidget[T TDu](path, sortName string, widthPerc float64, Query func(string
             path = newPath; init(state)
         case 57: sortName = "name"; init(state)
         case 39: sortName = "size"; init(state)
-        case 61: cmd = "/"; state.instructions.PushBack(cmdPos, "<-/")
+        case 61: cmd = "/"; state.Instructions.PushBack(cmdPos, "<-/")
         case 40, 54, 111, 116:
 			delta := (int(detail)-113)/2
 			if Abs(delta) > 2 { delta = -2*(int(detail)-47) }
             duState.Cursor += delta
-            interpretXTerm(state, duUpdate(duState, oldCursor))
+            InterpretXTerm(state, duUpdate(duState, oldCursor))
         default: 
-			ch := xconf.Keymap[int(detail)]
+			ch := Conf.Keymap[int(detail)]
 			if ch == "N/A" || len(ch) > 4 { return 0 }
-            if cmd == "" { state.instructions.PushBack(cmdPos, "<-:") }
+            if cmd == "" { state.Instructions.PushBack(cmdPos, "<-:") }
             cmd += ch
-            state.instructions.PushBack("<-" + ch)
+            state.Instructions.PushBack("<-" + ch)
         }
         return
     }, init)
