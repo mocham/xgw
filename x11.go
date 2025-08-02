@@ -1,6 +1,7 @@
 package xgw
 import (
 	"time"
+	"log"
 	"strings"
     "github.com/BurntSushi/xgb/xproto"
     "github.com/BurntSushi/xgb"
@@ -28,7 +29,7 @@ var (
 	AtomMap = make(map[string]xproto.Atom)
 	WinStates = make(map[Window]WindowState)
     DesktopWins, StickyWins []Window
-    BarWindow, ImWindow, Root, FocusWindow Window
+    ImWindow, Root, FocusWindow Window
 	timeDiff, selTime uint32
 )
 func QueryTree(win Window, callback func (Window)) { if tree, err := xproto.QueryTree(conn, win).Reply(); err == nil { for _, sub := range tree.Children { callback(sub) } } }
@@ -41,13 +42,12 @@ func GetGeometry(win Window) (x,y, w, h int) { if reply, err := xproto.GetGeomet
 func Map(win Window) bool { return xproto.MapWindow(conn, win).Check() == nil }
 func Unmap(win Window) bool { return xproto.UnmapWindow(conn, win).Check() == nil }
 func QueryPointer() (int, int) { reply, _ := xproto.QueryPointer(conn, Root).Reply(); return int(reply.RootX), int(reply.RootY) }
-func SetClipboard(selName, text string) { selTime, clipboard = XTimeNow(), text; xproto.SetSelectionOwner(conn, BarWindow, AtomMap[selName], xproto.Timestamp(selTime)) }
 func ResizeWindow(win Window, x, y, w, h int) { xproto.ConfigureWindow(conn, win, uint16(xproto.ConfigWindowX | xproto.ConfigWindowY | xproto.ConfigWindowWidth | xproto.ConfigWindowHeight | xproto.ConfigWindowBorderWidth), []uint32{Abs32(x), Abs32(y), Abs32(w), Abs32(h), 0}) }
 func GetWindowPID(win Window) (ret uint32) { if reply, err := xproto.GetProperty(conn, false, win, AtomMap["_NET_WM_PID"], AtomMap["CARDINAL"], 0, 1).Reply(); err == nil && len(reply.Value) >= 4 { ret = *Ptr[uint32](&reply.Value[0]) }; return }
 func GetTitle(win Window) string { return string(QueryBytes(win, "WM_NAME")) }
 func SetWmName(win Window, name string) { SendString(win, AtomMap["WM_NAME"], name) }
 func XTimeNow() uint32 { return timeDiff+uint32(time.Now().UnixMilli()) }
-func SetXTime(t uint32) { timeDiff = t-uint32(time.Now().UnixMilli()) }
+func setXTime(t uint32) { timeDiff = t-uint32(time.Now().UnixMilli()) }
 func FindWindow(title string) Window { for win, _ := range WinStates { if strings.Contains(GetTitle(win), title) { return win } }; return 0 }
 func CountWindowsOfTitle(title string) (count int) { for _, state := range WinStates { if strings.Contains(state.BarData, title) { count +=1; continue } }; return }
 
@@ -83,7 +83,10 @@ func EmulateSequence(keys ...string) {
 	if err != nil { return }
 	defer conn.Close()
 	if time.Sleep(time.Second/4); xtest.Init(conn) != nil { return }	
-	for i := 0; i < len(keys); i++ { xtest.FakeInput(conn, xproto.KeyPress, byte(ParseInt(keys[i])), 0, 0, 0, 0, 0) }
+	for i := 0; i < len(keys); i++ { 
+		log.Printf("Emulate %s", keys[i])
+		xtest.FakeInput(conn, xproto.KeyPress, byte(ParseInt(keys[i])), 0, 0, 0, 0, 0) 
+	}
 	for i := len(keys)-1; i>=0; i-- { xtest.FakeInput(conn, xproto.KeyRelease, byte(ParseInt(keys[i])), 0, 0, 0, 0, 0) }
 } 
 
@@ -96,7 +99,21 @@ func NewXImage(x, y, w, h int, title string) (ret *XImage) {
 	var err error
 	ret = &XImage{ Width: w, Height: h, Pixmap: 0, Win: Root, Conn: conn }
 	if title != "root" {
-		if title != BarTitle { ret.Conn, err = xgb.NewConn(); logAndExit(err) }
+		if title != BarTitle { 
+			ret.Conn, err = xgb.NewConn()
+			logAndExit(err) 
+		} else {
+			defer func () { // Get current timestamp
+				for {
+					ev, err := conn.WaitForEvent()
+					if err != nil { return }
+					if propNotify, ok := ev.(EXProp); ok {
+						setXTime(uint32(propNotify.Time))
+						return
+					}
+				}
+			} ()
+		}
 		if ret.Win, err = xproto.NewWindowId(ret.Conn); err != nil || xproto.CreateWindowChecked(
 			ret.Conn, screen.RootDepth, ret.Win, Root, int16(x), int16(y), uint16(w), uint16(h), 0, // border width
 			xproto.WindowClassInputOutput, screen.RootVisual, xproto.CwBackPixel|xproto.CwEventMask,
@@ -143,7 +160,14 @@ func (im *XImage) XDraw(img RGBAData, xpos, ypos int) {
 	}
 }
 
+func SetClipboard(selName, text string, owner Window) { 
+	selTime, clipboard = XTimeNow(), text
+	log.Printf("Set clipboard %s <-%s, %v", text, clipboard, selTime)
+	xproto.SetSelectionOwner(conn, owner, AtomMap[selName], xproto.Timestamp(selTime))
+}
+
 func UseClipboard(client Window, clientProp, target, selection xproto.Atom, timeStamp xproto.Timestamp) {
+	log.Printf("Use clipboard %s, %v <- %v", clipboard, timeStamp, selTime)
 	if clientProp == AtomMap["NONE"] { clientProp = target }
 	var propType xproto.Atom
 	var propFormat byte = 32

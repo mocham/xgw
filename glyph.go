@@ -51,7 +51,6 @@ func CStr(str string) (ret cStr) { ret.data = CStrBytes(str); ret.Ptr = Ptr[C.ch
 func BlankImage(w, h int) RGBAData { return RGBAData {Pix: make([]uint32, w*h), Stride: w*4, Width: w, Height: h} }
 func Crop(img RGBAData, x0, y0, w, h int) RGBAData { return RGBAData {Pix: img.Pix[(img.Stride/4)*y0+x0:], Stride: img.Stride, Width: w, Height: h} }
 func logErr(err error) bool { if err != nil { log.Printf("Err: %v", err) }; return err != nil }
-func cleanupFont() { if ff2Flag { C.ft_cleanup() } }
 
 func LogAndExit(cleanup func(), errs ...error) { 
 	for _, err := range errs { 
@@ -64,9 +63,9 @@ func LogAndExit(cleanup func(), errs ...error) {
 }
 
 func Cleanup() {
-	cleanupFont();
-	xu.Conn().Close()
-	conn.Close()
+	if ff2Flag { C.ft_cleanup(); ff2Flag = false }
+	if xu != nil { xu.Conn().Close(); xu = nil }
+	if conn != nil { conn.Close(); conn = nil }
 }
 
 func logAndExit(errs ...error) { LogAndExit(nil, errs...) }
