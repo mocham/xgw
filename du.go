@@ -69,7 +69,7 @@ func duAt[T TDu](state *DuState[T]) string {
 	return state.At(state.Path, state.List[state.Cursor].Key)
 }
 
-func duWidget[T TDu](path, sortName string, widthPerc float64, Query func(string, string) *DuState[T], Run func (*DuState[T], string) string) {
+func DuWidget[T TDu](path, sortName string, widthPerc float64, Query func(string, string) *DuState[T], Run func (*DuState[T], string) string) {
 	var duState *DuState[T]
     winWidth, cmd, cmdPos, cursors := int(float64(width) * widthPerc), "", "xPos=" + fmtInt(15*scale), make(map[string]int)
 	if winWidth < 0 { winWidth = 300 }

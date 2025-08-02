@@ -26,37 +26,38 @@ var (
 	clipboard, currentDesktop string
 	timeHour = time.Hour
 	atomMap = make(map[string]xproto.Atom)
-	winStates = make(map[Window]windowState)
-    desktopWins, stickyWins []Window
-    barWindow, imWindow, root, focusWindow Window
+	WinStates = make(map[Window]windowState)
+    DesktopWins, StickyWins []Window
+    BarWindow, ImWindow, root, FocusWindow Window
 	timeDiff, selTime, deskLock uint32
 )
 func QueryTree(win Window, callback func (Window)) { if tree, err := xproto.QueryTree(conn, win).Reply(); err == nil { for _, sub := range tree.Children { callback(sub) } } }
 func QueryBytes(win Window, prop string) (ret []byte) { if reply, err := xproto.GetProperty(conn, false, win, atomMap[prop], atomMap["STRING"], 0, 1024).Reply(); err == nil { ret = reply.Value }; return }
 func SendString(win Window, prop xproto.Atom, str string) { SendBytes(win, prop, atomMap["STRING"], 8, []byte(str)) }
 func SendBytes(win Window, prop, propType xproto.Atom, format byte, data []byte) { xproto.ChangeProperty(conn, xproto.PropModeReplace, win, prop, propType, format, uint32(len(data)*8 / int(format)), data) }
-func focusSet(win Window) { if win != focusWindow && win != 0 { xproto.SetInputFocus(conn, xproto.InputFocusPointerRoot, win, 0); focusWindow = win } }
-func raiseWindow(win Window) { xproto.ConfigureWindow(conn, win, xproto.ConfigWindowStackMode, []uint32{xproto.StackModeAbove}) }
-func getGeometry(win Window) (x,y, w, h int) { if reply, err := xproto.GetGeometry(conn, xproto.Drawable(win)).Reply(); err == nil { return int(reply.X), int(reply.Y), int(reply.Width), int(reply.Height) }; return }
+func FocusSet(win Window) { if win != FocusWindow && win != 0 { xproto.SetInputFocus(conn, xproto.InputFocusPointerRoot, win, 0); FocusWindow = win } }
+func RaiseWindow(win Window) { xproto.ConfigureWindow(conn, win, xproto.ConfigWindowStackMode, []uint32{xproto.StackModeAbove}) }
+func GetGeometry(win Window) (x,y, w, h int) { if reply, err := xproto.GetGeometry(conn, xproto.Drawable(win)).Reply(); err == nil { return int(reply.X), int(reply.Y), int(reply.Width), int(reply.Height) }; return }
 func Map(win Window) bool { return xproto.MapWindow(conn, win).Check() == nil }
 func Unmap(win Window) bool { return xproto.UnmapWindow(conn, win).Check() == nil }
 func QueryPointer() (int, int) { reply, _ := xproto.QueryPointer(conn, root).Reply(); return int(reply.RootX), int(reply.RootY) }
-func setClipboard(selName, text string) { selTime, clipboard = XTimeNow(), text; xproto.SetSelectionOwner(conn, barWindow, atomMap[selName], xproto.Timestamp(selTime)) }
-func resizeWindow(win Window, x, y, w, h int) { xproto.ConfigureWindow(conn, win, uint16(xproto.ConfigWindowX | xproto.ConfigWindowY | xproto.ConfigWindowWidth | xproto.ConfigWindowHeight | xproto.ConfigWindowBorderWidth), []uint32{Abs32(x), Abs32(y), Abs32(w), Abs32(h), 0}) }
-func getWindowPID(win Window) (ret uint32) { if reply, err := xproto.GetProperty(conn, false, win, atomMap["_NET_WM_PID"], atomMap["CARDINAL"], 0, 1).Reply(); err == nil && len(reply.Value) >= 4 { ret = *Ptr[uint32](&reply.Value[0]) }; return }
-func getTitle(win Window) string { return string(QueryBytes(win, "WM_NAME")) }
-func setWmName(win Window, name string) { SendString(win, atomMap["WM_NAME"], name) }
+func SetClipboard(selName, text string) { selTime, clipboard = XTimeNow(), text; xproto.SetSelectionOwner(conn, BarWindow, atomMap[selName], xproto.Timestamp(selTime)) }
+func ResizeWindow(win Window, x, y, w, h int) { xproto.ConfigureWindow(conn, win, uint16(xproto.ConfigWindowX | xproto.ConfigWindowY | xproto.ConfigWindowWidth | xproto.ConfigWindowHeight | xproto.ConfigWindowBorderWidth), []uint32{Abs32(x), Abs32(y), Abs32(w), Abs32(h), 0}) }
+func GetWindowPID(win Window) (ret uint32) { if reply, err := xproto.GetProperty(conn, false, win, atomMap["_NET_WM_PID"], atomMap["CARDINAL"], 0, 1).Reply(); err == nil && len(reply.Value) >= 4 { ret = *Ptr[uint32](&reply.Value[0]) }; return }
+func GetTitle(win Window) string { return string(QueryBytes(win, "WM_NAME")) }
+func SetWmName(win Window, name string) { SendString(win, atomMap["WM_NAME"], name) }
 func XTimeNow() uint32 { return timeDiff+uint32(time.Now().UnixMilli()) }
 func SetXTime(t uint32) { timeDiff = t-uint32(time.Now().UnixMilli()) }
-func findWindow(title string) Window { for win, _ := range winStates { if strings.Contains(getTitle(win), title) { return win } }; return 0 }
-func countWindowsOfTitle(title string) (count int) { for _, state := range winStates { if strings.Contains(state.barData, title) { count +=1; continue } }; return }
+func FindWindow(title string) Window { for win, _ := range WinStates { if strings.Contains(GetTitle(win), title) { return win } }; return 0 }
+func CountWindowsOfTitle(title string) (count int) { for _, state := range WinStates { if strings.Contains(state.barData, title) { count +=1; continue } }; return }
 
-func initXServer() {
+func init() {
+	initFont()
     var err error
 	conn, err = xgb.NewConn()
 	logAndExit(err)
     screen = xproto.Setup(conn).DefaultScreen(conn)
-    root, focusWindow, height, width = screen.Root, screen.Root, int(screen.HeightInPixels), int(screen.WidthInPixels)
+    root, FocusWindow, height, width = screen.Root, screen.Root, int(screen.HeightInPixels), int(screen.WidthInPixels)
     if width < 1000 { scale = 1 } else { scale = int(width/1000) }
     for _, atomName := range xconf.X11Atoms{ setupAtom(atomName, true) }
 	setupAtom(xconf.BarAtom, false)
@@ -66,9 +67,9 @@ func initXServer() {
 }
 
 func syncState(win Window) {
-	if _, exists := winStates[win]; exists { return }
+	if _, exists := WinStates[win]; exists { return }
     attr, _ := xproto.GetWindowAttributes(conn, win).Reply()
-	winStates[win] = windowState{mapped: attr.MapState == xproto.MapStateViewable, barData: string(QueryBytes(win, xconf.BarAtom))}
+	WinStates[win] = windowState{mapped: attr.MapState == xproto.MapStateViewable, barData: string(QueryBytes(win, xconf.BarAtom))}
 }
 
 func setupAtom(atomName string, existingAtom bool) {
@@ -77,7 +78,7 @@ func setupAtom(atomName string, existingAtom bool) {
     atomMap[atomName] = atom.Atom
 }
 
-func emulateSequence(keys ...string) {
+func EmulateSequence(keys ...string) {
 	conn, err := xgb.NewConn()
 	if err != nil { return }
 	defer conn.Close()
@@ -91,7 +92,7 @@ func (im *XImage) Flush() { xproto.ClearArea(xu.Conn(), false, im.Win, 0, 0, 0, 
 func (im *XImage) Ungrab(code byte) { xproto.UngrabKey(im.Conn, xproto.Keycode(code), root, xproto.ModMaskAny) }
 func (im *XImage) Grab(mod uint16, code byte) { xproto.GrabKey(im.Conn, false, root, mod, xproto.Keycode(code), xproto.GrabModeAsync, xproto.GrabModeAsync) }
 
-func newXImage(x, y, w, h int, title string) (ret *XImage) { 
+func NewXImage(x, y, w, h int, title string) (ret *XImage) { 
 	var err error
 	ret = &XImage{ Width: w, Height: h, Pixmap: 0, Win: root, Conn: conn }
 	if title != "root" {
@@ -142,7 +143,7 @@ func (im *XImage) XDraw(img RGBAData, xpos, ypos int) {
 	}
 }
 
-func useClipboard(client Window, clientProp, target, selection xproto.Atom, timeStamp xproto.Timestamp) {
+func UseClipboard(client Window, clientProp, target, selection xproto.Atom, timeStamp xproto.Timestamp) {
 	if clientProp == atomMap["NONE"] { clientProp = target }
 	var propType xproto.Atom
 	var propFormat byte = 32
@@ -157,12 +158,12 @@ func useClipboard(client Window, clientProp, target, selection xproto.Atom, time
 	xproto.SendEvent(conn, false, client, xproto.EventMaskNoEvent, string(xproto.SelectionNotifyEvent{Time: timeStamp, Requestor: client, Selection: selection, Target: target, Property: clientProp}.Bytes()))
 }
 
-func sendWmDelete(win Window) {
+func SendWmDelete(win Window) {
     data32 := [5]uint32 { uint32(atomMap["WM_DELETE_WINDOW"]), 0, 0, 0, 0 }
     xproto.SendEvent(conn, false, win, xproto.EventMaskNoEvent, string(xproto.ClientMessageEvent{Format: 32, Window: win, Type: atomMap["WM_PROTOCOLS"], Data: xproto.ClientMessageDataUnion{Data8: Array[byte](&data32[0], 20)}}.Bytes())) // Only Data8 works
 }
 
-func screenshot(x, y, w, h int) ([]byte, []uint32) {
+func Screenshot(x, y, w, h int) ([]byte, []uint32) {
 	if reply, err := xproto.GetImage(conn, xproto.ImageFormatZPixmap, xproto.Drawable(root), int16(x), int16(y), uint16(w), uint16(h), 0xFFFFFFFF).Reply(); err == nil { return reply.Data, Array[uint32](&reply.Data[0], w*h) }
 	return nil, nil
 }
