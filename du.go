@@ -15,13 +15,13 @@ func parseXTermColor(state *multiRowState, escapeSeq string) {
 	if len(escapeSeq) < 4 { return }
 	if escapeSeq == "\x1b[0m" { state.bgColor, state.fgColor = 0, 0xff8787af; return }
 	if parts := strings.Split(escapeSeq[2:len(escapeSeq)-1], ";"); len(parts) == 1 {
-		if code := parseInt(parts[0]); code >= 30 && code <= 37 {
+		if code := ParseInt(parts[0]); code >= 30 && code <= 37 {
 			state.fgColor = xterm256ToARGB(code - 30)
 		} else if code >= 40 && code <= 47 {
 			state.bgColor = xterm256ToARGB(code - 40)
 		}
 	} else if len(parts) == 3 && parts[1] == "5" {
-        if code := parseInt(parts[2]); parts[0] == "48" {
+        if code := ParseInt(parts[2]); parts[0] == "48" {
 			state.bgColor = xterm256ToARGB(code)
 		} else {
 			state.fgColor = xterm256ToARGB(code)

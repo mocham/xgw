@@ -8,22 +8,22 @@ import (
 	"strconv"
 	"path/filepath"
 )
-func parseInt(s string) (ret int) { ret, _ = strconv.Atoi(s); return }
-func fmtInt(i int) string { return fmt.Sprintf("%d", i) }
-func fmtChar(c rune) string { return fmt.Sprintf("%c", c) }
+func ParseInt(s string) (ret int) { ret, _ = strconv.Atoi(s); return }
+func FmtInt(i int) string { return fmt.Sprintf("%d", i) }
+func FmtChar(c rune) string { return fmt.Sprintf("%c", c) }
 func HasPreChar(s string, b byte) bool { return len(s) >= 1 && s[0] == b }
 func CStrBytes(str string) (ret []byte) { ret = make([]byte, len(str)+1); copy(ret, str); return }
-func removeElement[T comparable](arr []T, ele T) []T { for i, v := range arr { if v == ele { return append(arr[:i], arr[i+1:]...) } }; return arr }
+func RemoveElement[T comparable](arr []T, ele T) []T { for i, v := range arr { if v == ele { return append(arr[:i], arr[i+1:]...) } }; return arr }
 func Abs[T ~int](x T) T { if x < 0 { return -x }; return x }
 func Abs32[T ~int](x T) uint32 { if x < 0 { return uint32(-x) }; return uint32(x) }
-func isPrintable(b byte) bool { return b >= 32 && b <= 126 }
-func stringToRune(s string) uint32 { var buf [4]byte; copy(buf[:], s); return *Ptr[uint32](&buf[0]) }
+func IsPrintable(b byte) bool { return b >= 32 && b <= 126 }
+func StringToRune(s string) uint32 { var buf [4]byte; copy(buf[:], s); return *Ptr[uint32](&buf[0]) }
 func HexToUint32(hex string) uint32 { rgb, _ := strconv.ParseUint(hex, 16, 32); return uint32(0xFF000000 | rgb) }
-func isDir(path string) bool { fileInfo, err := os.Stat(path); return err == nil && fileInfo.IsDir() }
+func IsDir(path string) bool { fileInfo, err := os.Stat(path); return err == nil && fileInfo.IsDir() }
 func DbEscape(path string) string { return strings.ReplaceAll(strings.ReplaceAll(path, "_", `\_`), "%", `\%`) }
-func replaceAlls(s []string, replacements map[string]string) (ret[]string) { for _, st := range s { ret = append(ret, replaceAll(st, replacements)) }; return }
+func ReplaceAlls(s []string, replacements map[string]string) (ret[]string) { for _, st := range s { ret = append(ret, replaceAll(st, replacements)) }; return }
 
-func foreachRune(b []byte, callback func (uint32)) {
+func ForeachRune(b []byte, callback func (uint32)) {
 	for i := 0; i < len(b); {
 		switch b[i] >> 4 {
 		case 12, 13: callback(uint32(b[i])|uint32(b[i+1])<<8); i += 2
@@ -34,7 +34,7 @@ func foreachRune(b []byte, callback func (uint32)) {
 	}
 }
 
-func replaceAll(s string, replacements map[string]string) string {
+func ReplaceAll(s string, replacements map[string]string) string {
     b, parts := strings.Builder{}, strings.Split(s, "${")
     b.WriteString(parts[0])
     for _, part := range parts[1:] {
@@ -46,19 +46,19 @@ func replaceAll(s string, replacements map[string]string) string {
     return b.String()
 }
 
-func findMissingInteger(names []string) int {
+func FindMissingInteger(names []string) int {
     nameSet := make(map[string]struct{}, len(names))
     for _, name := range names { nameSet[name] = struct{}{} }
     for k := 1; ; k++ { if _, exists := nameSet[fmtInt(k)]; !exists { return k } }
 }
 
-func extractPrintable(input string) string {
+func ExtractPrintable(input string) string {
 	var result []rune
 	for _, r := range input { if unicode.IsPrint(r) || r == '\n' { result = append(result, r) } }
 	return string(result)
 }
 
-func humanize(size float64) string {
+func Humanize(size float64) string {
     units, threshold, unitIndex := "KMGTP", 1024.0, 0
     for size >= threshold && unitIndex < len(units)-1 { size /= threshold; unitIndex++ }
     switch {
@@ -69,12 +69,12 @@ func humanize(size float64) string {
     }
 }
 
-func congruentMod(n, size int) int {
+func CongruentMod(n, size int) int {
     if size <= 0 { return 0 }
     if m := n % size; m < 0 { return m+size } else { return m }
 }
 
-func expandHome(relativePath string) string {
+func ExpandHome(relativePath string) string {
 	if strings.HasPrefix(relativePath, "~") {
 		homeDir, err := os.UserHomeDir()
 		if err != nil { return relativePath }
@@ -83,14 +83,14 @@ func expandHome(relativePath string) string {
 	return relativePath
 }
 
-func createOrReplaceSymlink(target, link string) error {
+func CreateOrReplaceSymlink(target, link string) error {
     if _, err := os.Lstat(link); err == nil {
         if err := os.Remove(link); err != nil { return err }
     } else { return err }
     return os.Symlink(target, link)
 }
 
-func findFilesWithSubstring(dir, substr string) (matches []string) {
+func FindFilesWithSubstring(dir, substr string) (matches []string) {
     filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
         if err == nil && !info.IsDir() && strings.Contains(info.Name(), substr) { matches = append(matches, path) }
         return err
@@ -98,7 +98,7 @@ func findFilesWithSubstring(dir, substr string) (matches []string) {
     return
 }
 
-func matchOSFiles(pattern string) (matches []string, err error) {
+func MatchOSFiles(pattern string) (matches []string, err error) {
 	if strings.HasPrefix(pattern, "~/") {
 		home, err := os.UserHomeDir()
 		if err != nil { return nil, err }

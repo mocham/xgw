@@ -181,8 +181,8 @@ func multiRowGlyphWidget(title string, left, top, winWidth, winHeight int, keypr
             if strings.HasPrefix(instruction, "<-") { foreachRune([]byte(instruction[2:]), func(aRune uint32){drawRune(aRune)}) }
 			if len(instruction) < 5 { return }
 			switch instruction[:5] {
-			case "yPos=": if y := parseInt(instruction[5:]); y >= 1 && y <= state.maxRows { state.yPos = y }
-			case "xPos=": if x := parseInt(instruction[5:]); x >= 0 && x * glyphWidth <= state.winWidth { state.xPos = x * glyphWidth }
+			case "yPos=": if y := ParseInt(instruction[5:]); y >= 1 && y <= state.maxRows { state.yPos = y }
+			case "xPos=": if x := ParseInt(instruction[5:]); x >= 0 && x * glyphWidth <= state.winWidth { state.xPos = x * glyphWidth }
 			case "XTerm": parseXTermColor(&state, strings.TrimPrefix(instruction, "XTerm="))
 			}
         }

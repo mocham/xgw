@@ -83,8 +83,8 @@ func EmulateSequence(keys ...string) {
 	if err != nil { return }
 	defer conn.Close()
 	if time.Sleep(time.Second/4); xtest.Init(conn) != nil { return }	
-	for i := 0; i < len(keys); i++ { xtest.FakeInput(conn, xproto.KeyPress, byte(parseInt(keys[i])), 0, 0, 0, 0, 0) }
-	for i := len(keys)-1; i>=0; i-- { xtest.FakeInput(conn, xproto.KeyRelease, byte(parseInt(keys[i])), 0, 0, 0, 0, 0) }
+	for i := 0; i < len(keys); i++ { xtest.FakeInput(conn, xproto.KeyPress, byte(ParseInt(keys[i])), 0, 0, 0, 0, 0) }
+	for i := len(keys)-1; i>=0; i-- { xtest.FakeInput(conn, xproto.KeyRelease, byte(ParseInt(keys[i])), 0, 0, 0, 0, 0) }
 } 
 
 type XImage struct { Conn *xgb.Conn; Pixmap xproto.Pixmap; Win Window; Width, Height int }
