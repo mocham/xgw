@@ -58,11 +58,15 @@ func LogAndExit(cleanup func(), errs ...error) {
 		if err == nil { continue }
 		log.Printf("Fatal: %v", err); 
 		if cleanup != nil { cleanup() }
-		cleanupFont();
-		xu.Conn().Close()
-		conn.Close()
+		Cleanup()
 		os.Exit(1) 
 	} 
+}
+
+func Cleanup() {
+	cleanupFont();
+	xu.Conn().Close()
+	conn.Close()
 }
 
 func logAndExit(errs ...error) { LogAndExit(nil, errs...) }
