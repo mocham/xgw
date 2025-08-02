@@ -224,3 +224,5 @@ RUN cd /libbar && \
     git clone -v https://github.com/nothings/stb.git stb/ && \
     gcc -c stb_wrapper.c -o stb_wrapper.o -fPIC -O3 -Wall -I./ -I/output/include/ && \
     ar rcs /output/static-libs/libstb.a stb_wrapper.o
+
+RUN sed -i '/::/d' /output/include/libbar_pinyin.h
