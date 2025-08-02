@@ -194,22 +194,6 @@ RUN tar -xf /tarballs/$FFI.tar.gz && \
     cp x86_64-pc-linux-gnu/.libs/libffi.a /output/static-libs/ && \
     cd .. && rm -r $FFI
 
-COPY modules/pinyin/*.cpp /pinyin/
-COPY modules/pinyin/make-pinyin.sh /pinyin/
-COPY modules/pinyin/include/*.h /output/include/pinyin/
-COPY modules/stb/*.h /output/include/stb/
-COPY src/stb_wrapper.h /output/include/
-COPY src/stb_wrapper.c /libbar/
-COPY src/plugin-pinyin.cc /pinyin/plugin.cpp
-COPY ./wrapper-static.py /libbar/
-
-RUN bash /pinyin/make-pinyin.sh && \
-    python /libbar/wrapper-static.py _ /output/include/libbar_pinyin.h /pinyin/plugin.cpp
-
-RUN cd /libbar && \
-    gcc -c stb_wrapper.c -o stb_wrapper.o -fPIC -O3 -Wall -I/output/include/ && \
-    ar rcs /output/static-libs/libstb.a stb_wrapper.o
-
 ENV ALSA=alsa-lib-1.2.14
 COPY tarballs/$ALSA.tar.bz2 /tarballs/
 RUN tar -xf /tarballs/$ALSA.tar.bz2 && \
@@ -223,3 +207,20 @@ RUN tar -xf /tarballs/$ALSA.tar.bz2 && \
     cp src/.libs/libasound.a /output/static-libs/ && \
     cp include/*.h /output/include/ && \
     cd .. && rm -r $ALSA
+
+COPY modules/pinyin/*.cpp /pinyin/
+COPY modules/pinyin/make-pinyin.sh /pinyin/
+COPY modules/pinyin/include/*.h /output/include/pinyin/
+COPY src/stb_wrapper.h /output/include/
+COPY src/stb_wrapper.c /libbar/
+COPY src/plugin-pinyin.cc /pinyin/plugin.cpp
+COPY ./wrapper-static.py /libbar/
+
+RUN bash /pinyin/make-pinyin.sh && \
+    python /libbar/wrapper-static.py _ /output/include/libbar_pinyin.h /pinyin/plugin.cpp
+
+RUN cd /libbar && \
+    mkdir stb && \
+    git clone -v https://github.com/nothings/stb.git stb/ && \
+    gcc -c stb_wrapper.c -o stb_wrapper.o -fPIC -O3 -Wall -I./ -I/output/include/ && \
+    ar rcs /output/static-libs/libstb.a stb_wrapper.o
