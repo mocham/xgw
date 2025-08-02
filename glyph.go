@@ -53,8 +53,8 @@ func Array[T any, U any](b *U, size int) []T { return (*(*[1<<30]T)(unsafe.Point
 func CStr(str string) (ret cStr) { ret.data = CStrBytes(str); ret.ptr = Ptr[C.char](&ret.data[0]); return }
 func blankImage(w, h int) RGBAData { return RGBAData {Pix: make([]uint32, w*h), Stride: w*4, Width: w, Height: h} }
 func Crop(img RGBAData, x0, y0, w, h int) RGBAData { return RGBAData {Pix: img.Pix[(img.Stride/4)*y0+x0:], Stride: img.Stride, Width: w, Height: h} }
-func logErr(err error) bool { if err != nil { log.Infof("Err: %v", err) }; return err != nil }
-func logAndExit(errs ...error) { for _, err := range errs { if err != nil { log.Infof("Fatal: %v", err); cleanup(); os.Exit(1) } } }
+func logErr(err error) bool { if err != nil { log.Printf("Err: %v", err) }; return err != nil }
+func logAndExit(errs ...error) { for _, err := range errs { if err != nil { log.Printf("Fatal: %v", err); cleanup(); os.Exit(1) } } }
 func cleanupFont() { if ff2Flag { C.ft_cleanup() } }
 
 func initFont() { 
