@@ -39,9 +39,9 @@ type DuState[T TDu] struct {
 
 func duRenderWithOffset[T TDu](state *DuState[T], cursor int) (ret string) {
     if cursor < 0 || cursor >= len(state.List) || cursor < state.Left || cursor >= state.Right { return }
-    pref := fmtInt(cursor)
+    pref := FmtInt(cursor)
     if cursor < 10 { pref = " " + pref }
-	ret = "\x1b[" + fmtInt(cursor-state.Left+1) + ";0H" + pref + "│" + state.Render(filepath.Join(state.Path, state.List[cursor].Key), state.Dict, cursor==0) + "\x1b[K\x1b[0m"
+	ret = "\x1b[" + FmtInt(cursor-state.Left+1) + ";0H" + pref + "│" + state.Render(filepath.Join(state.Path, state.List[cursor].Key), state.Dict, cursor==0) + "\x1b[K\x1b[0m"
 	if cursor == 0 { ret = "\x1b[48;5;60m" + ret }
 	return
 }
@@ -55,7 +55,7 @@ func duRefresh[T TDu](state *DuState[T]) (ret string) {
 }
 
 func duUpdate[T TDu](state *DuState[T], oldCursor int) string {
-	state.Cursor = congruentMod(state.Cursor, len(state.List)) 
+	state.Cursor = CongruentMod(state.Cursor, len(state.List)) 
 	height := state.Right - state.Left
 	switch {
 	case state.Cursor < state.Left: state.Left, state.Right = state.Cursor, state.Cursor+height; return duRefresh[T](state)
@@ -71,7 +71,7 @@ func duAt[T TDu](state *DuState[T]) string {
 
 func DuWidget[T TDu](path, sortName string, widthPerc float64, Query func(string, string) *DuState[T], Run func (*DuState[T], string) string) {
 	var duState *DuState[T]
-    winWidth, cmd, cmdPos, cursors := int(float64(width) * widthPerc), "", "xPos=" + fmtInt(15*scale), make(map[string]int)
+    winWidth, cmd, cmdPos, cursors := int(float64(width) * widthPerc), "", "xPos=" + FmtInt(15*scale), make(map[string]int)
 	if winWidth < 0 { winWidth = 300 }
     init := func (state *multiRowState) {
 		if duState != nil { cursors[duState.Path] = duState.Cursor }

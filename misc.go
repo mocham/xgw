@@ -21,7 +21,7 @@ func StringToRune(s string) uint32 { var buf [4]byte; copy(buf[:], s); return *P
 func HexToUint32(hex string) uint32 { rgb, _ := strconv.ParseUint(hex, 16, 32); return uint32(0xFF000000 | rgb) }
 func IsDir(path string) bool { fileInfo, err := os.Stat(path); return err == nil && fileInfo.IsDir() }
 func DbEscape(path string) string { return strings.ReplaceAll(strings.ReplaceAll(path, "_", `\_`), "%", `\%`) }
-func ReplaceAlls(s []string, replacements map[string]string) (ret[]string) { for _, st := range s { ret = append(ret, replaceAll(st, replacements)) }; return }
+func ReplaceAlls(s []string, replacements map[string]string) (ret[]string) { for _, st := range s { ret = append(ret, ReplaceAll(st, replacements)) }; return }
 
 func ForeachRune(b []byte, callback func (uint32)) {
 	for i := 0; i < len(b); {
@@ -49,7 +49,7 @@ func ReplaceAll(s string, replacements map[string]string) string {
 func FindMissingInteger(names []string) int {
     nameSet := make(map[string]struct{}, len(names))
     for _, name := range names { nameSet[name] = struct{}{} }
-    for k := 1; ; k++ { if _, exists := nameSet[fmtInt(k)]; !exists { return k } }
+    for k := 1; ; k++ { if _, exists := nameSet[FmtInt(k)]; !exists { return k } }
 }
 
 func ExtractPrintable(input string) string {

@@ -1,13 +1,13 @@
 package xgw
 import "strings"
-func universalWidget(title string, left, top, winWidth, winHeight int, paint func (*XImage) (int, int), button func (byte, int16, int16) int, keypress func (byte) int, refresh func(string), init func(*XImage)) {
-	ximg := newXImage(left, top, winWidth, winHeight, title)
+func UniversalWidget(title string, left, top, winWidth, winHeight int, paint func (*XImage) (int, int), button func (byte, int16, int16) int, keypress func (byte) int, refresh func(string), init func(*XImage)) {
+	ximg := NewXImage(left, top, winWidth, winHeight, title)
 	if ximg == nil { return }
 	defer func() { ximg.Ungrab(0); ximg.Destroy() }()
 	if init != nil { init(ximg) }
 	paintWrap := func () {
 		w, h := paint(ximg)
-		if w >0 && h > 0 { resizeWindow(ximg.Win, left, top, w, h) }
+		if w >0 && h > 0 { ResizeWindow(ximg.Win, left, top, w, h) }
 		ximg.Flush()
 	}
 	paintWrap()
@@ -17,10 +17,10 @@ func universalWidget(title string, left, top, winWidth, winHeight int, paint fun
         switch event := ev.(type) {
 		case EXProp:
 			if refresh == nil { continue }
-			if newTitle := getTitle(ximg.Win); len(newTitle)>0 && newTitle[len(newTitle)-1] == '*' {
+			if newTitle := GetTitle(ximg.Win); len(newTitle)>0 && newTitle[len(newTitle)-1] == '*' {
 				refresh(newTitle)
 				paintWrap()
-				setWmName(ximg.Win, title)
+				SetWmName(ximg.Win, title)
 			}
         case EXClient: if event.Type==atomMap["WM_PROTOCOLS"] && event.Data.Data32[0]==uint32(atomMap["WM_DELETE_WINDOW"]) && ximg.Win==event.Window { return }
         case EXButton:
@@ -41,7 +41,7 @@ func universalWidget(title string, left, top, winWidth, winHeight int, paint fun
 		}
 	}
 }
-func windowRaiseFocuser(ximg *XImage) { raiseWindow(ximg.Win); focusSet(ximg.Win) }
+func WindowRaiseFocuser(ximg *XImage) { RaiseWindow(ximg.Win); FocusSet(ximg.Win) }
 
 // Dequeue implements a fixed-capacity double-ended queue.
 type Dequeue[T any] struct { data []T; capacity, size, head, tail int }
@@ -91,12 +91,12 @@ func (d *Dequeue[T]) Back() (T, error) {
 	return d.data[(d.tail - 1 + d.capacity) % d.capacity], nil
 }
 
-type multiRowState struct {
+type MultiRowState struct {
     fgColor, bgColor uint32
     xPos, yPos, maxRows, winWidth, winHeight int
     instructions *Dequeue[string]
 }
-func interpretXTerm(state *multiRowState, code string) {
+func interpretXTerm(state *MultiRowState, code string) {
 	for _, str := range parseXTerm(code) {
 		if strings.HasPrefix(str, "\x1b[") {
 			switch str[len(str) - 1] {
@@ -155,9 +155,9 @@ func parseXTerm(input string) (ret []string) {
 	return
 }
 
-func multiRowGlyphWidget(title string, left, top, winWidth, winHeight int, keypress func(byte, *multiRowState) int, init func(*multiRowState)) {
+func MultiRowGlyphWidget(title string, left, top, winWidth, winHeight int, keypress func(byte, *MultiRowState) int, init func(*MultiRowState)) {
     maxRows := winHeight / glyphHeight
-    state := multiRowState{
+    state := MultiRowState{
         xPos: 0, yPos: 1, fgColor: 0xffd7afaf, bgColor: 0xff5f5f87,
         instructions: NewDequeue[string](winWidth/glyphWidth*maxRows*2),
         maxRows: maxRows, winWidth: winWidth, winHeight: winHeight,
@@ -187,7 +187,7 @@ func multiRowGlyphWidget(title string, left, top, winWidth, winHeight int, keypr
 			}
         }
     }
-    universalWidget(title, left, top, winWidth, winHeight, func(ximg *XImage) (int, int) {
+    UniversalWidget(title, left, top, winWidth, winHeight, func(ximg *XImage) (int, int) {
         for {
             if state.instructions.size == 0 { break }
             instruction, err := state.instructions.PopFront()
@@ -198,7 +198,7 @@ func multiRowGlyphWidget(title string, left, top, winWidth, winHeight int, keypr
         if keypress == nil { return -1 }
         return keypress(detail, &state)
     }, nil, func(xim *XImage) {
-		windowRaiseFocuser(xim)
+		WindowRaiseFocuser(xim)
 		ximg = xim
 		if init != nil { init(&state) }
 	})
