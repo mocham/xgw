@@ -167,3 +167,17 @@ func Screenshot(x, y, w, h int) ([]byte, []uint32) {
 	if reply, err := xproto.GetImage(conn, xproto.ImageFormatZPixmap, xproto.Drawable(Root), int16(x), int16(y), uint16(w), uint16(h), 0xFFFFFFFF).Reply(); err == nil { return reply.Data, Array[uint32](&reply.Data[0], w*h) }
 	return nil, nil
 }
+
+func FocusPointer()  {
+    x0, y0 := QueryPointer()
+    score, cand := (Width+Height)*2, FocusWindow
+    check := func (win Window) (ret bool) {
+        if !WinStates[win].Mapped { return }
+        if x, y, w, h := GetGeometry(win); w+h<score && x0>=x && x0<=x+w && y0>=y && y0<=y+h { cand, score, ret = win, w+h, true }
+        return
+    }
+    if check(FocusWindow) { return }
+    for _, win := range StickyWins { check(win) }
+    for _, win := range DesktopWins { check(win) }
+    FocusSet(cand)
+}
