@@ -1,4 +1,4 @@
-package main
+package xgw
 func simpleCanvasWidget(title string, img RGBAData) {
 	top, left := 0, 0
 	universalWidget(title, 0, 0, width, height, func(ximg *XImage) (int, int) {

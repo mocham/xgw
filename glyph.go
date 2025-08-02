@@ -1,4 +1,4 @@
-package main
+package xgw
 /*
 #cgo LDFLAGS: -L/output/static-libs -l:libfreetype.a -lm
 #cgo CFLAGS:  -I/output/include/freetype -I/output/include/

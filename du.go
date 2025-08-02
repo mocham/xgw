@@ -1,4 +1,4 @@
-package main
+package xgw
 import (
 	"path/filepath"
 	"strings"

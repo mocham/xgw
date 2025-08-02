@@ -1,4 +1,4 @@
-package main
+package xgw
 import "strings"
 func universalWidget(title string, left, top, winWidth, winHeight int, paint func (*XImage) (int, int), button func (byte, int16, int16) int, keypress func (byte) int, refresh func(string), init func(*XImage)) {
 	ximg := newXImage(left, top, winWidth, winHeight, title)
