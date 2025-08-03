@@ -204,7 +204,6 @@ func MultiRowGlyphWidget(title string, left, top, winWidth, winHeight int, keypr
 	})
 }
 
-
 type SingleRowState struct { XPos int; Instructions *Dequeue[string] }
 func SingleRowGlyphWidget(title string, left, top, winWidth int, modKeys []uint16, keypress func (byte, *SingleRowState) int, init func(*SingleRowState)) {
 	state := SingleRowState { XPos: 0, Instructions: NewDequeue[string](winWidth / GlyphWidth * 2) }

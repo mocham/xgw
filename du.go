@@ -76,7 +76,7 @@ func DuWidget[T TDu](path, sortName string, widthPerc float64, Query func(string
     init := func (state *MultiRowState) {
 		if duState != nil { cursors[duState.Path] = duState.Cursor }
 		newState := Query(path, sortName)
-		if newState == nil { path = duState.Path; return }
+		if newState == nil { if duState != nil { path = duState.Path }; return }
 		duState = newState
 		duState.Right = state.maxRows
         if cursorBackup, exists := cursors[path]; exists { duState.Cursor = cursorBackup }
@@ -84,6 +84,7 @@ func DuWidget[T TDu](path, sortName string, widthPerc float64, Query func(string
 		state.Instructions.PushBack("ClearRest")
     }
     MultiRowGlyphWidget("auto-du-widget", Width - winWidth, 0, winWidth, Height - 60, func (detail byte, state *MultiRowState) (ret int) {
+		if duState == nil { return -1 }
         oldCursor := duState.Cursor
 		ret = 1
         if cmd != "" {

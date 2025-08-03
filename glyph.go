@@ -1,7 +1,7 @@
 package xgw
 /*
-#cgo LDFLAGS: -L/output/static-libs -l:libfreetype.a -lm
-#cgo CFLAGS:  -I/output/include/freetype -I/output/include/
+#cgo LDFLAGS: -L${SRCDIR}/CLibBuild/CACHE/static-libs -l:libfreetype.a -lm
+#cgo CFLAGS:  -I${SRCDIR}/CLibBuild/CACHE/include/freetype -I${SRCDIR}/CLibBuild/CACHE/include/
 #include "CPlugins/src/plugin-ff2.c"
 #include "CPlugins/src/plugin-missing.c"
 */
