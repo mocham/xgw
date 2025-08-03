@@ -1,7 +1,7 @@
 package xgw
 /*
-#cgo LDFLAGS: -L${SRCDIR}/CLibBuild/CACHE/static-libs -l:libfreetype.a -lm
-#cgo CFLAGS:  -I${SRCDIR}/CLibBuild/CACHE/include/freetype -I${SRCDIR}/CLibBuild/CACHE/include/
+#cgo LDFLAGS: -L/output/static-libs -l:libfreetype.a -lm
+#cgo CFLAGS:  -I/output/include/freetype -I/output/include/
 #include "CPlugins/src/plugin-ff2.c"
 #include "CPlugins/src/plugin-missing.c"
 */
@@ -15,10 +15,7 @@ import (
 	"encoding/json"
 	"bytes"
 )
-const (
-    GlyphWidth, GlyphHeight, glyphBaseline = 24, 40, 34
-	BarTitle = "auto-stickybar"
-)
+const BarTitle, GlyphWidth, GlyphHeight, glyphBaseline = "auto-stickybar", 24, 40, 34
 type RGBAData struct { Pix []uint32; Width, Height, Stride int }
 type cStr struct { data []byte; Ptr *C.char }
 type X11Config struct {
