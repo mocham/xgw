@@ -1,5 +1,5 @@
 {
-    "fonts": ["~/Bar/User_Data/fonts/Monaco_Linux.ttf", "~/Bar/User_Data/fonts/fontawesome-solid.ttf", "~/Bar/User_Data/fonts/msyh.ttc"] ,
+    "fonts": ["~/.local/share/fonts/Monaco_Linux.ttf", "~/.local/share/fonts/fontawesome-solid.ttf", "~/.local/share/fonts/msyh.ttc"] ,
     "xterm_colors": [4278124320, 4287130178, 4284654937, 4293891957,
         4284870581, 4288479647, 4287996842, 4294633688,
         4285093483, 4291579221, 4288996468, 4294705032,
